@@ -28,7 +28,7 @@ Minimum:
 
 - Git
 - Docker Desktop atau Docker Engine
-- Node.js 20 atau lebih baru
+- Node.js 26.13.0 LTS
 
 Untuk lab Kubernetes dan GitOps: `kubectl`, `kind`, dan `helm`. Untuk lab tambahan: OpenTofu, Trivy, Kyverno CLI, Cosign, dan Syft. Jalankan environment doctor untuk melihat apa yang sudah tersedia:
 

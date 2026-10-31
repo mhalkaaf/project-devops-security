@@ -4,7 +4,7 @@ const { spawnSync } = require('node:child_process');
 const tools = [
   { name: 'git', required: true, args: ['--version'] },
   { name: 'docker', required: true, args: ['--version'] },
-  { name: 'node', required: true, args: ['--version'], minimumMajor: 20 },
+  { name: 'node', required: true, args: ['--version'], minimumMajor: 26 },
   { name: 'kubectl', required: false, args: ['version', '--client=true'] },
   { name: 'kind', required: false, args: ['version'] },
   { name: 'helm', required: false, args: ['version', '--short'] },
