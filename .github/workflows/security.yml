@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Scan source, secrets, and misconfiguration
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -29,7 +29,7 @@ jobs:
       - name: Build image
         run: docker build -f apps/demo-api/Dockerfile -t devops-lab/demo-api:${{ github.sha }} .
       - name: Scan image
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: devops-lab/demo-api:${{ github.sha }}
           severity: HIGH,CRITICAL
