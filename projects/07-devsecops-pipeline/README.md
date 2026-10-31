@@ -17,7 +17,7 @@ trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 devops-lab/d
 kyverno test projects/07-devsecops-pipeline/tests
 ```
 
-Workflow container pada tag menggunakan OIDC untuk keyless signing. Jangan menyimpan private signing key di repository. Untuk registry privat, batasi token ke package/repository yang diperlukan dan gunakan identity berumur pendek.
+Job `publish` pada pipeline terpadu menggunakan OIDC untuk keyless signing saat tag rilis dibuat. Jangan menyimpan private signing key di repository. Untuk registry privat, batasi token ke package/repository yang diperlukan dan gunakan identity berumur pendek.
 
 ## Policy lifecycle
 

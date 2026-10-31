@@ -1,13 +1,13 @@
 # 02 — Secure CI Pipeline
 
-Workflow terdapat di `.github/workflows` karena GitHub hanya membaca workflow dari lokasi tersebut.
+Workflow terpadu terdapat di `.github/workflows/pipeline.yml` karena GitHub hanya membaca workflow dari lokasi tersebut.
 
 ## Quality gates
 
-1. `ci.yml`: lint dan unit test pada setiap pull request.
-2. `container.yml`: build image, smoke test, dan upload artifact metadata.
-3. `security.yml`: Trivy filesystem/config scan serta SBOM.
-4. `manifests.yml`: Helm render dan Kyverno policy test.
+1. `quality`: lint dan unit test.
+2. `manifests` dan `source-security`: render Helm/Kustomize, scan manifest, test Kyverno, serta scan source secara paralel.
+3. `container`: build dan scan image, lalu membuat SBOM sebagai artifact.
+4. `publish`: push image hanya dari branch/tag tepercaya dan menandatangani tag rilis dengan OIDC.
 
 Pipeline memakai permission minimum, action yang dipin ke major release, concurrency cancellation, dan tidak melakukan push image dari pull request.
 

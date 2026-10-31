@@ -1,0 +1,153 @@
+name: DevOps and DevSecOps Pipeline
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+    tags: ["v*"]
+  schedule:
+    - cron: "17 2 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pipeline-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: 1. Lint and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26.13.0
+      - run: npm run lint
+      - run: npm test
+
+  manifests:
+    name: 2a. Manifests and policies
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - uses: azure/setup-kubectl@v4
+      - name: Lint and render manifests
+        run: |
+          mkdir -p rendered
+          helm lint shared/helm-charts/demo-api
+          helm template demo shared/helm-charts/demo-api > rendered/helm.yaml
+          kubectl kustomize projects/05-gitops/overlays/dev > rendered/dev.yaml
+          kubectl kustomize projects/05-gitops/overlays/prod > rendered/prod.yaml
+      - name: Scan rendered manifests
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: rendered
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+      - name: Test Kyverno policies
+        run: docker run --rm -v "$PWD:/workspace" -w /workspace ghcr.io/kyverno/kyverno-cli:v1.15.2 test projects/07-devsecops-pipeline/tests
+
+  source-security:
+    name: 2b. Source security
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan source, secrets, and configuration
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          skip-files: projects/05-gitops/overlays/dev/deployment-patch.yaml,projects/05-gitops/overlays/prod/deployment-patch.yaml,projects/07-devsecops-pipeline/tests/resources.yaml
+
+  container:
+    name: 3. Container security and SBOM
+    needs: [manifests, source-security]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image for verification
+        run: docker build --pull -f apps/demo-api/Dockerfile -t devops-lab/demo-api:${{ github.sha }} .
+      - name: Scan image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: devops-lab/demo-api:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: devops-lab/demo-api:${{ github.sha }}
+          format: spdx-json
+          output-file: demo-api.spdx.json
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-api-sbom
+          path: demo-api.spdx.json
+          retention-days: 14
+
+  publish:
+    name: 4. Publish and sign
+    if: github.event_name == 'push'
+    needs: container
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Normalize registry image name
+        run: echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Generate image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha
+            type=ref,event=tag
+      - name: Build and publish
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/demo-api/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Install Cosign
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: sigstore/cosign-installer@v3
+      - name: Sign published image digest
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: echo "$TAGS" | head -n 1 | xargs -I {} cosign sign --yes "{}@${DIGEST}"
