@@ -1,0 +1,46 @@
+services:
+  demo-api:
+    build:
+      context: ../..
+      dockerfile: apps/demo-api/Dockerfile
+    image: devops-lab/demo-api:observability
+    environment:
+      APP_ENV: observability
+      APP_VERSION: local
+      LATENCY_MS: ${LATENCY_MS:-0}
+      ERROR_RATE: ${ERROR_RATE:-0}
+    ports:
+      - "8080:8080"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.138.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otel-collector.yaml:/etc/otelcol/config.yaml:ro
+    depends_on: [demo-api]
+
+  prometheus:
+    image: prom/prometheus:v3.7.1
+    command: ["--config.file=/etc/prometheus/prometheus.yaml", "--storage.tsdb.retention.time=1d"]
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
+      - ./alerts.yaml:/etc/prometheus/alerts.yaml:ro
+    ports:
+      - "9090:9090"
+    depends_on: [otel-collector]
+
+  grafana:
+    image: grafana/grafana:12.2.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: devops-lab
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    depends_on: [prometheus]

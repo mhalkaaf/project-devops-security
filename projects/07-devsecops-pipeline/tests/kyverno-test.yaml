@@ -1,0 +1,29 @@
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: secure-pod-tests
+policies:
+  - ../policies/secure-pod.yaml
+resources:
+  - resources.yaml
+results:
+  - policy: secure-pod
+    rule: require-restricted-container
+    resources: [secure-pod]
+    kind: Pod
+    result: pass
+  - policy: secure-pod
+    rule: disallow-latest-tag
+    resources: [secure-pod]
+    kind: Pod
+    result: pass
+  - policy: secure-pod
+    rule: require-restricted-container
+    resources: [insecure-pod]
+    kind: Pod
+    result: fail
+  - policy: secure-pod
+    rule: disallow-latest-tag
+    resources: [insecure-pod]
+    kind: Pod
+    result: fail

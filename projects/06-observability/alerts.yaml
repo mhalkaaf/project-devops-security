@@ -1,0 +1,19 @@
+groups:
+  - name: demo-api
+    rules:
+      - alert: DemoApiHighErrorRate
+        expr: sum(rate(demo_api_requests_total{status=~"5.."}[2m])) / clamp_min(sum(rate(demo_api_requests_total[2m])), 0.001) > 0.05
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: Demo API error rate is above 5 percent
+          runbook_url: docs/runbook.md#high-error-rate
+      - alert: DemoApiTargetDown
+        expr: up{job="otel-collector"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: The OpenTelemetry metrics target is unavailable
+          runbook_url: docs/runbook.md#target-down

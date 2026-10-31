@@ -1,0 +1,48 @@
+name: Security
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+  schedule:
+    - cron: "17 2 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan source, secrets, and misconfiguration
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+      - name: Build image
+        run: docker build -f apps/demo-api/Dockerfile -t devops-lab/demo-api:${{ github.sha }} .
+      - name: Scan image
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: devops-lab/demo-api:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: devops-lab/demo-api:${{ github.sha }}
+          format: spdx-json
+          output-file: demo-api.spdx.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: demo-api-sbom
+          path: demo-api.spdx.json
+          retention-days: 14

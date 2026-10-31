@@ -1,0 +1,11 @@
+.git
+.github
+.terraform
+node_modules
+artifacts
+reports
+projects
+tools
+docs
+*.md
+*.log

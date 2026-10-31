@@ -1,0 +1,31 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Requests per second",
+      "targets": [{ "expr": "sum(rate(demo_api_requests_total[1m]))", "legendFormat": "requests/s" }],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+    },
+    {
+      "type": "timeseries",
+      "title": "5xx error rate",
+      "targets": [{ "expr": "sum(rate(demo_api_requests_total{status=~\"5..\"}[1m])) / clamp_min(sum(rate(demo_api_requests_total[1m])), 0.001)", "legendFormat": "error ratio" }],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 }
+    },
+    {
+      "type": "stat",
+      "title": "Uptime",
+      "targets": [{ "expr": "demo_api_uptime_seconds", "legendFormat": "seconds" }],
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 8 }
+    }
+  ],
+  "schemaVersion": 41,
+  "tags": ["devops-lab"],
+  "templating": { "list": [] },
+  "time": { "from": "now-15m", "to": "now" },
+  "title": "Demo API Operations",
+  "uid": "demo-api-operations",
+  "version": 1
+}

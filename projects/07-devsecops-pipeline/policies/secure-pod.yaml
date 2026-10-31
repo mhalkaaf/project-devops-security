@@ -1,0 +1,40 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: secure-pod
+  annotations:
+    policies.kyverno.io/title: Secure Pod Baseline
+    policies.kyverno.io/severity: high
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: require-restricted-container
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+      validate:
+        message: Containers must run non-root with a read-only root filesystem and no Linux capabilities.
+        pattern:
+          spec:
+            securityContext:
+              runAsNonRoot: true
+            containers:
+              - securityContext:
+                  allowPrivilegeEscalation: false
+                  readOnlyRootFilesystem: true
+                  capabilities:
+                    drop:
+                      - ALL
+    - name: disallow-latest-tag
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+      validate:
+        message: Mutable latest image tags are not allowed.
+        pattern:
+          spec:
+            containers:
+              - image: "!*:latest"

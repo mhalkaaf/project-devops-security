@@ -1,0 +1,66 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: secure-node-service
+  title: Secure Node.js Service
+  description: Creates a service with tests, container security, ownership, and catalog metadata.
+spec:
+  owner: platform-team
+  type: service
+  parameters:
+    - title: Service information
+      required: [name, owner]
+      properties:
+        name:
+          title: Name
+          type: string
+          pattern: '^[a-z][a-z0-9-]+$'
+        owner:
+          title: Owner
+          type: string
+          description: Backstage group that owns the service
+        description:
+          title: Description
+          type: string
+          default: A service created from the secure golden path
+    - title: Repository
+      required: [repoUrl]
+      properties:
+        repoUrl:
+          title: Repository location
+          type: string
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts: [github.com]
+  steps:
+    - id: fetch
+      name: Render service skeleton
+      action: fetch:template
+      input:
+        url: ./skeleton
+        values:
+          name: ${{ parameters.name }}
+          owner: ${{ parameters.owner }}
+          description: ${{ parameters.description }}
+    - id: publish
+      name: Publish repository
+      action: publish:github
+      input:
+        repoUrl: ${{ parameters.repoUrl }}
+        description: ${{ parameters.description }}
+        defaultBranch: main
+        protectDefaultBranch: true
+        requireCodeOwnerReviews: true
+    - id: register
+      name: Register component
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: Open in catalog
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}

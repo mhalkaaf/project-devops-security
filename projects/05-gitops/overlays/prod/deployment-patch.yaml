@@ -1,0 +1,14 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-api
+  namespace: demo
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+        - name: demo-api
+          env:
+            - name: APP_ENV
+              value: prod

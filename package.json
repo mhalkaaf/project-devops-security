@@ -1,0 +1,13 @@
+{
+  "name": "devops-security-learning-lab",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local-first DevOps and DevSecOps learning lab",
+  "scripts": {
+    "start": "node apps/demo-api/src/server.js",
+    "test": "node scripts/test.js",
+    "lint": "node scripts/lint.js"
+  },
+  "engines": { "node": ">=20" },
+  "license": "MIT"
+}
