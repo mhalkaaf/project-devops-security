@@ -15,9 +15,7 @@ WORKDIR /app
 COPY --chown=node:node apps/demo-api/package.json ./package.json
 COPY --chown=node:node apps/demo-api/src ./src
 
-# INTENTIONAL FAILURE EXERCISE: restore this to USER node after observing the
-# pipeline rejection.
-USER root
+USER node
 EXPOSE 8080
 
 HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=3 \
