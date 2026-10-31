@@ -64,6 +64,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Scan source, secrets, and configuration
         uses: aquasecurity/trivy-action@v0.36.0
+        env:
+          TRIVY_SECRET_CONFIG: projects/07-devsecops-pipeline/trivy-secret.yaml
         with:
           scan-type: fs
           scan-ref: .
