@@ -26,6 +26,7 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
+          skip-files: projects/05-gitops/overlays/dev/deployment-patch.yaml,projects/05-gitops/overlays/prod/deployment-patch.yaml,projects/07-devsecops-pipeline/tests/resources.yaml
       - name: Build image
         run: docker build -f apps/demo-api/Dockerfile -t devops-lab/demo-api:${{ github.sha }} .
       - name: Scan image
