@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1.7
 FROM node:26.13.0-alpine AS runtime
 
+#
 # The API runs directly with Node.js and does not need package managers at
 # runtime. Removing npm/npx also removes their unused dependency tree from the
 # final image, reducing both image attack surface and vulnerability findings.
